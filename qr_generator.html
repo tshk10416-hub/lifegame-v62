@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ライフリッジゲーム - QRコード生成</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f4f8; color: #333; margin: 0; padding: 40px; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; border-radius: 20px; padding: 40px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }
+        h1 { color: #f5576c; text-align: center; margin-bottom: 20px; }
+        p.info { text-align: center; color: #666; margin-bottom: 30px; font-size: 1.1em; }
+        .qr-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); 
+            gap: 30px; 
+        }
+        .qr-section h2 { 
+            color: #4c51bf; 
+            border-bottom: 2px solid #a3bffa; 
+            padding-bottom: 10px; 
+            margin-top: 40px; 
+            margin-bottom: 20px;
+            grid-column: 1 / -1; /* グリッド全体にわたって表示 */
+        }
+        .qr-item { background: #fff; border: 1px solid #ddd; border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .qr-item h3 { font-size: 1.2em; color: #48bb78; margin-top: 0; margin-bottom: 10px; height: 3em; overflow: hidden; }
+        .qr-item p { font-size: 0.9em; color: #999; margin-bottom: 10px; }
+        .qr-code-div { margin: 10px auto; width: 200px; height: 200px; border: 4px solid #f0f4f8; padding: 10px; background: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🃏 ライフリッジゲーム - 全カードQRコード生成 (43種)</h1>
+        <p class="info">
+            以下のQRコードを印刷して、ゲームのカードとしてご利用ください。
+            スキャンすると、`card_info.html?card_id=XXXX` の形式でカード情報ページが開きます。
+        </p>
+        <div id="qr-codes-container">
+            </div>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // 1. カードデータ定義 (L012のタイプを social_event に修正)
+        // ----------------------------------------------------
+        const CARD_DATA = {
+            // --- 職業カード (J001 - J009) ---
+            "J001": { title: "職業: 会社員", type: "job" },
+            "J002": { title: "職業: 公務員", type: "job" },
+            "J003": { title: "職業: 料理人", type: "job" },
+            "J004": { title: "職業: 保育士", type: "job" },
+            "J005": { title: "職業: 医師", type: "job" },
+            "J006": { title: "職業: 看護師", type: "job" },
+            "J007": { title: "職業: 美容師", type: "job" },
+            "J008": { title: "職業: フリーター", type: "job" },
+            "J009": { title: "職業: パート従業員", type: "job" },
+            
+            // --- 結婚カード (M001 - M003) ---
+            "M001": { title: "結婚💍 - 親族のみの挙式", type: "marriage" },
+            "M002": { title: "結婚💍 - 標準的な挙式", type: "marriage" },
+            "M003": { title: "結婚💍 - 豪華な挙式", type: "marriage" },
+
+            // --- 子どもカード (C001 - C003) ---
+            "C001": { title: "子供👶 - 1人を授かる", type: "children" },
+            "C002": { title: "子供👶 - 2人を授かる", type: "children" },
+            "C003": { title: "子供👶 - 3人を授かる", type: "children" },
+
+            // --- 住宅カード (H001 - H009) ---
+            "H001": { title: "一戸建て🏡 - お手ごろ", type: "house" },
+            "H002": { title: "一戸建て🏡 - 標準", type: "house" },
+            "H003": { title: "一戸建て🏡 - 豪華", type: "house" },
+            "H004": { title: "マンション🏢 - お手ごろ", type: "house" },
+            "H005": { title: "マンション🏢 - 標準", type: "house" },
+            "H006": { title: "マンション🏢 - 豪華", type: "house" },
+            "H007": { title: "賃貸🏠 - お手ごろ", type: "house" },
+            "H008": { title: "賃貸🏠 - 標準", type: "house" },
+            "H009": { title: "賃貸🏠 - 豪華", type: "house" },
+
+            // --- 自動車カード (A001 - A003) ---
+            "A001": { title: "自動車🚗 - お手ごろクラス", type: "car" },
+            "A002": { title: "自動車🚗 - 標準クラス", type: "car" },
+            "A003": { title: "自動車🚗 - ハイクラス", type: "car" },
+            
+            // --- 保険カード (I001 - I003) ---
+            "I001": { title: "生命保険カード", type: "insurance" },
+            "I002": { title: "火災保険カード", type: "insurance" },
+            "I003": { title: "自動車保険カード", type: "insurance" },
+            
+            // --- ライフイベントカード (L001 - L011) ---
+            "L001": { title: "子どもの英才教育", type: "life_event_asset_change" },
+            "L002": { title: "家族旅行", type: "life_event_asset_change" },
+            "L003": { title: "冠婚葬祭", type: "life_event_asset_change" },
+            "L004": { title: "交通事故", type: "life_event" },
+            "L005": { title: "家族もしくは本人の怪我", type: "life_event" },
+            "L006": { title: "病気で入院", type: "life_event" },
+            "L007": { title: "盗難被害", type: "life_event" },
+            "L008": { title: "装飾品の購入", type: "life_event_asset_change" },
+            "L009": { title: "自分磨き", type: "life_event_asset_change" },
+            "L010": { title: "趣味に夢中", type: "life_event_asset_change" },
+            "L011": { title: "子どもの結婚", type: "life_event" },
+            
+            // --- ソーシャルイベントカード (S001 - S005 + L012) ---
+            // L012はカードIDをそのまま使用し、タイプのみを social_event に変更
+            "S001": { title: "好景気発生", type: "social_event" },
+            "S002": { title: "不景気発生", type: "social_event" },
+            "S003": { title: "インフレ発生", type: "social_event" },
+            "S004": { title: "新型感染症大流行", type: "social_event" },
+            "S005": { title: "社会保障費増大", type: "social_event" },
+            "L012": { title: "子育て世帯特別給付金", type: "social_event" }, 
+            
+            // --- 投資カード (T001 - T012) ---
+            "T001": { title: "積立投資カード (月5千円)", type: "investment" },
+            "T002": { title: "積立投資カード (月1万円)", type: "investment" },
+            "T003": { title: "積立投資カード (月2万円)", type: "investment" },
+            "T004": { title: "積立投資カード (月3万円)", type: "investment" },
+            "T005": { title: "積立投資カード (月4万円)", type: "investment" },
+            "T006": { title: "積立投資カード (月5万円)", type: "investment" },
+            "T007": { title: "一括投資カード (20万円)", type: "investment" },
+            "T008": { title: "一括投資カード (50万円)", type: "investment" },
+            "T009": { title: "一括投資カード (70万円)", type: "investment" },
+            "T010": { title: "一括投資カード (100万円)", type: "investment" },
+            "T011": { title: "一括投資カード (150万円)", type: "investment" },
+            "T012": { title: "一括投資カード (200万円)", type: "investment" }
+        };
+
+        const cardTypes = {
+            "job": "💼 職業カード (9枚)",
+            "marriage": "💍 結婚カード (3枚)",
+            "children": "👶 子どもカード (3枚)",
+            "house": "🏠 住宅カード (9枚)",
+            "car": "🚗 自動車カード (3枚)",
+            "insurance": "🛡️ 保険カード (3枚)",
+            "life_event": "💥 ライフイベント（出費/保険適用）(4枚)",
+            "life_event_asset_change": "💰 ライフイベント（資産変動）(7枚)",
+            "social_event": "🌐 社会情勢イベント (6枚)", // 枚数も修正
+            "investment": "📈 投資カード (12枚)"
+        };
+
+        /**
+         * QRコードを生成し、ページに挿入する関数
+         */
+        function generateQRCodes() {
+            const container = document.getElementById('qr-codes-container');
+            const baseUrl = "card_info.html?card_id="; 
+            let currentType = null;
+            let currentGrid = null;
+            
+            // カードIDのキーをソートし、セクションの表示順を整理
+            const sortedCardIds = Object.keys(CARD_DATA).sort((a, b) => {
+                const typeA = CARD_DATA[a].type;
+                const typeB = CARD_DATA[b].type;
+                
+                // 定義されたタイプ順序
+                const typeOrder = ["job", "marriage", "children", "house", "car", "insurance", "life_event", "life_event_asset_change", "social_event", "investment"];
+                
+                const indexA = typeOrder.indexOf(typeA);
+                const indexB = typeOrder.indexOf(typeB);
+                
+                // タイプ順序が同じ場合はIDでソート（例: L001, L002... S001, S002...）
+                if (indexA === indexB) {
+                    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                }
+                
+                return indexA - indexB;
+            });
+
+            sortedCardIds.forEach(cardId => {
+                const card = CARD_DATA[cardId];
+                
+                // 新しいセクションが必要な場合
+                if (card.type !== currentType) {
+                    currentType = card.type;
+
+                    const sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'qr-section';
+                    
+                    const sectionTitle = document.createElement('h2');
+                    sectionTitle.textContent = cardTypes[currentType] || currentType.toUpperCase();
+                    sectionDiv.appendChild(sectionTitle);
+                    
+                    currentGrid = document.createElement('div');
+                    currentGrid.className = 'qr-grid';
+                    sectionDiv.appendChild(currentGrid);
+                    
+                    container.appendChild(sectionDiv);
+                }
+
+                // QRコードにエンコードするURL
+                const qrUrl = baseUrl + cardId;
+
+                // QRコードアイテムのDOM要素を作成
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'qr-item';
+
+                const titleH3 = document.createElement('h3');
+                titleH3.textContent = card.title;
+
+                const idp = document.createElement('p');
+                idp.textContent = `ID: ${cardId}`;
+
+                const qrDiv = document.createElement('div');
+                qrDiv.className = 'qr-code-div';
+                qrDiv.id = `qrcode-${cardId}`;
+
+                itemDiv.appendChild(titleH3);
+                itemDiv.appendChild(idp);
+                itemDiv.appendChild(qrDiv);
+                currentGrid.appendChild(itemDiv);
+
+                // QRコードの生成
+                new QRCode(document.getElementById(`qrcode-${cardId}`), {
+                    text: qrUrl,
+                    width: 200,
+                    height: 200,
+                    colorDark : "#000000",
+                    colorLight : "#ffffff",
+                    correctLevel : QRCode.CorrectLevel.H
+                });
+            });
+        }
+
+        // ページロード時に生成を実行
+        document.addEventListener('DOMContentLoaded', generateQRCodes);
+    </script>
+</body>
+</html>

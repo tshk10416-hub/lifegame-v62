@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>カード情報 - ライフリッジゲーム</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* card_info.html 専用スタイル */
+        /* 変更: 背景色を style.css と合わせて暖色系に変更 */
+        body { background: #FDF8F0; }
+        .card-container {
+            max-width: 700px;
+            margin: 50px auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .card-header {
+            /* 変更: ヘッダーを style.css と合わせてコーラル系に変更 */
+            background: linear-gradient(135deg, #FFA07A 0%, #FF7F50 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+        .card-header h2 {
+            font-size: 2em;
+            margin: 0;
+        }
+        .card-header p {
+            margin-top: 5px;
+            font-size: 1.1em;
+        }
+        .card-effect {
+            /* 変更: ボーダーと背景色を style.css と合わせて暖色系に変更 */
+            border: 2px solid #FEEABC;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #FFFBF5;
+        }
+        .card-effect p {
+            font-size: 1.2em;
+            /* 変更: テキスト色を青から標準の黒系に変更 */
+            color: #333;
+            font-weight: bold;
+        }
+        .error-message {
+            color: #e53e3e;
+            background: #fff5f5;
+            border: 2px solid #e53e3e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="card-container">
+        <div id="card-display">
+            </div>
+        <button onclick="window.location.href='index.html';" class="btn-primary" style="margin-top: 20px;">
+            <i class="fas fa-arrow-left"></i> メインアプリに戻る
+        </button>
+    </div>
+
+    <script>
+        // ----------------------------------------------------
+        // 1. カードデータ定義 (全43種)
+        // ----------------------------------------------------
+        const CARD_DATA = {
+            // --- 職業カード (J001 - J009) ---
+            "J001": { title: "職業: 会社員", type: "job", effect: "年収: 400万円" },
+            "J002": { title: "職業: 公務員", type: "job", effect: "年収: 450万円" },
+            "J003": { title: "職業: 料理人", type: "job", effect: "年収: 350万円" },
+            "J004": { title: "職業: 保育士", type: "job", effect: "年収: 300万円" },
+            "J005": { title: "職業: 医師", type: "job", effect: "年収: 1000万円" },
+            "J006": { title: "職業: 看護師", type: "job", effect: "年収: 500万円" },
+            "J007": { title: "職業: 美容師", type: "job", effect: "年収: 300万円" },
+            "J008": { title: "職業: フリーター", type: "job", effect: "年収: 200万円" },
+            "J009": { title: "職業: パート従業員", type: "job", effect: "年収: 100万円" },
+            
+            // --- 結婚カード (M001 - M003) ---
+            "M001": { title: "結婚💍 - 親族のみの挙式", type: "marriage", effect: "結婚費用: 100万円" },
+            "M002": { title: "結婚💍 - 標準的な挙式", type: "marriage", effect: "結婚費用: 300万円" },
+            "M003": { title: "結婚💍 - 豪華な挙式", type: "marriage", effect: "結婚費用: 600万円" },
+
+            // --- 子どもカード (C001 - C003) ---
+            "C001": { title: "子供👶 - 1人を授かる", type: "children", effect: "年間教育費: 80万円 (20年間)" },
+            "C002": { title: "子供👶 - 2人を授かる", type: "children", effect: "年間教育費: 160万円 (20年間)" },
+            "C003": { title: "子供👶 - 3人を授かる", type: "children", effect: "年間教育費: 240万円 (20年間)" },
+
+            // --- 住宅カード (H001 - H009) ---
+            "H001": { title: "一戸建て🏡 - お手ごろ", type: "house", effect: "ローン/家賃: 150万円/年" },
+            "H002": { title: "一戸建て🏡 - 標準", type: "house", effect: "ローン/家賃: 200万円/年" },
+            "H003": { title: "一戸建て🏡 - 豪華", type: "house", effect: "ローン/家賃: 300万円/年" },
+            "H004": { title: "マンション🏢 - お手ごろ", type: "house", effect: "ローン/家賃: 120万円/年" },
+            "H005": { title: "マンション🏢 - 標準", type: "house", effect: "ローン/家賃: 180万円/年" },
+            "H006": { title: "マンション🏢 - 豪華", type: "house", effect: "ローン/家賃: 250万円/年" },
+            "H007": { title: "賃貸🏠 - お手ごろ", type: "house", effect: "ローン/家賃: 90万円/年" },
+            "H008": { title: "賃貸🏠 - 標準", type: "house", effect: "ローン/家賃: 120万円/年" },
+            "H009": { title: "賃貸🏠 - 豪華", type: "house", effect: "ローン/家賃: 150万円/年" },
+
+            // --- 自動車カード (A001 - A003) ---
+            "A001": { title: "自動車🚗 - お手ごろクラス", type: "car", effect: "購入費用: 200万円" },
+            "A002": { title: "自動車🚗 - 標準クラス", type: "car", effect: "購入費用: 350万円" },
+            "A003": { title: "自動車🚗 - ハイクラス", type: "car", effect: "購入費用: 600万円" },
+            
+            // --- 保険カード (I001 - I003) ---
+            "I001": { title: "生命保険カード", type: "insurance", effect: "年間保険料: 30万円 (病気・怪我の治療費補填)" },
+            "I002": { title: "火災保険カード", type: "insurance", effect: "年間保険料: 10万円 (火災・盗難の被害補填)" },
+            "I003": { title: "自動車保険カード", type: "insurance", effect: "年間保険料: 6万円 (交通事故の修理・治療費補填)" },
+            
+            // --- ライフイベントカード (L001 - L011) ---
+            "L001": { title: "子どもの英才教育", type: "life_event_asset_change", effect: "教育資金: 150万円 (一括支出)" },
+            "L002": { title: "家族旅行", type: "life_event_asset_change", effect: "旅行費用: 50万円 (一括支出)" },
+            "L003": { title: "冠婚葬祭", type: "life_event_asset_change", effect: "臨時出費: 30万円 (一括支出)" },
+            "L004": { title: "交通事故", type: "life_event", effect: "修理・治療費: 200万円 (自動車保険で0円)" },
+            "L005": { title: "家族もしくは本人の怪我", type: "life_event", effect: "治療費: 100万円 (生命保険で0円)" },
+            "L006": { title: "病気で入院", type: "life_event", effect: "治療費: 150万円 (生命保険で0円)" },
+            "L007": { title: "盗難被害", type: "life_event", effect: "被害額: 100万円 (火災保険で0円)" },
+            "L008": { title: "装飾品の購入", type: "life_event_asset_change", effect: "購入費用: 50万円 (一括支出)" },
+            "L009": { title: "自分磨き", type: "life_event_asset_change", effect: "投資費用: 20万円 (一括支出)" },
+            "L010": { title: "趣味に夢中", type: "life_event_asset_change", effect: "出費: 40万円 (一括支出)" },
+            "L011": { title: "子どもの結婚", type: "life_event", effect: "援助資金: 100万円 (一括支出)" },
+            
+            // --- ソーシャルイベントカード (S001 - S005 + L012) ---
+            "S001": { title: "好景気発生", type: "social_event", effect: "世帯年収が2割プラス" },
+            "S002": { title: "不景気発生", type: "social_event", effect: "世帯年収が2割マイナス" },
+            "S003": { title: "インフレ発生", type: "social_event", effect: "年間支出が1割増加" },
+            "S004": { title: "新型感染症大流行", type: "social_event", effect: "臨時支出: 50万円 (一括支出)" },
+            "S005": { title: "社会保障費増大", type: "social_event", effect: "年間支出が5%増加" },
+            "L012": { title: "子育て世帯特別給付金", type: "social_event", effect: "子どもの人数×10万円を支給" }, 
+            
+            // --- 投資カード (T001 - T012) ---
+            "T001": { title: "積立投資カード (月5千円)", type: "investment", effect: "年間積立: 6万円" },
+            "T002": { title: "積立投資カード (月1万円)", type: "investment", effect: "年間積立: 12万円" },
+            "T003": { title: "積立投資カード (月2万円)", type: "investment", effect: "年間積立: 24万円" },
+            "T004": { title: "積立投資カード (月3万円)", type: "investment", effect: "年間積立: 36万円" },
+            "T005": { title: "積立投資カード (月4万円)", type: "investment", effect: "年間積立: 48万円" },
+            "T006": { title: "積立投資カード (月5万円)", type: "investment", effect: "年間積立: 60万円" },
+            "T007": { title: "一括投資カード (20万円)", type: "investment", effect: "投資金額: 20万円 (一括支出)" },
+            "T008": { title: "一括投資カード (50万円)", type: "investment", effect: "投資金額: 50万円 (一括支出)" },
+            "T009": { title: "一括投資カード (70万円)", type: "investment", effect: "投資金額: 70万円 (一括支出)" },
+            "T010": { title: "一括投資カード (100万円)", type: "investment", effect: "投資金額: 100万円 (一括支出)" },
+            "T011": { title: "一括投資カード (150万円)", type: "investment", effect: "投資金額: 150万円 (一括支出)" },
+            "T012": { title: "一括投資カード (200万円)", type: "investment", effect: "投資金額: 200万円 (一括支出)" }
+        };
+
+        // ----------------------------------------------------
+        // 2. ページロード時の処理
+        // ----------------------------------------------------
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            let cardId = params.get('card_id');
+            const fromApp = params.get('from_app');
+            const display = document.getElementById('card-display');
+            
+            let isLoadedFromApp = (fromApp === 'true');
+            let storedCardId = localStorage.getItem('last_scanned_card_id');
+
+            // === 1. メインアプリからの遷移 (from_app=true) の場合 ===
+            if (isLoadedFromApp) {
+                if (cardId) {
+                    // IDがあればローカルストレージに保存し、URLのパラメータをクリアしてリロード
+                    // (リロードすることで、次回以降はローカルストレージのみに依存させる)
+                    localStorage.setItem('last_scanned_card_id', cardId);
+                    
+                    // URLパラメータなしでリロードし、cleanな状態にする
+                    window.location.replace('card_info.html');
+                    return;
+                }
+            }
+
+            // === 2. リロード後、または直接アクセスの場合 ===
+            if (!cardId) {
+                if (storedCardId) {
+                    // ローカルストレージにIDがあれば、それを使用
+                    cardId = storedCardId;
+                } else {
+                    // どちらにもIDがない場合はエラー
+                    display.innerHTML = `
+                        <div class="error-message">
+                            <h3>❌ エラー：メインのゲームアプリに接続できませんでした。</h3>
+                            <p>このページを直接開いた可能性があります。必ずメインアプリの「カードスキャン」ボタンを押して、QRコードを読み込んでください。</p>
+                            <p style="font-size: 0.9em; margin-top: 15px;">※ QRコードスキャン後にページをリロードした場合、**ブラウザのセキュリティ設定**または**ローカルストレージの不具合**でこのエラーが再表示されることがあります。メインアプリに戻り、再度スキャンしてください。</p>
+                        </div>
+                    `;
+                    return;
+                }
+            }
+
+            // === 3. カード情報の表示 (cardIdが確定した状態) ===
+            
+            // カードIDのチェック
+            if (!CARD_DATA[cardId]) {
+                display.innerHTML = `
+                    <div class="error-message">
+                        <h3>❌ エラー：カードIDが無効です。</h3>
+                        <p>ID: ${cardId} は存在しません。</p>
+                    </div>
+                `;
+                // 無効なIDの場合もクリア
+                localStorage.removeItem('last_scanned_card_id');
+                return;
+            }
+
+            // 正常に表示する
+            const card = CARD_DATA[cardId];
+            display.innerHTML = `
+                <div class="card-header">
+                    <h2>${card.title}</h2>
+                    <p>ID: ${cardId}</p>
+                </div>
+                <div class="card-effect">
+                    <p>効果:</p>
+                    <p>${card.effect}</p>
+                </div>
+                <p>このカードを**適用**するには、メインアプリに戻って「適用」ボタンを押してください。</p>
+            `;
+
+            // 表示が完了したら、ローカルストレージのカードIDは残したままにする。
+            // (ユーザーがメインアプリに戻るボタンを押すか、次をスキャンするまで保持)
+        });
+    </script>
+</body>
+</html>
